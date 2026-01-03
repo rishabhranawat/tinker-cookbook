@@ -64,6 +64,10 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
 
             # Logging
             "num_groups_to_log": 4,  # Log 4 trajectory groups per iteration
+
+            # WandB logging
+            "wandb_project": "reasoning-rl-tinker-v1",  # Your wandb project name
+            "wandb_name": None,  # Optional: specify run name, or leave as None for auto-generated
         }
     )
 

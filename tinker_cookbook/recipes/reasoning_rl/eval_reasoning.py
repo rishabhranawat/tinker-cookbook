@@ -9,13 +9,16 @@ Usage:
     python eval_reasoning.py --log_path ~/tinker-logs/reasoning-rl
 
     # Evaluate a specific checkpoint by name
-    python eval_reasoning.py --checkpoint_name 000100
+    python eval_reasoning.py --log_path ~/tinker-logs/reasoning-rl --checkpoint_name 000100
+
+    # Evaluate a checkpoint directly via Tinker URI
+    python eval_reasoning.py --checkpoint_uri tinker://[id]:train:0/weights/000020
 
     # Evaluate the base model (before training)
     python eval_reasoning.py --model_name meta-llama/Llama-3.2-1B
 
     # Evaluate with custom parameters
-    python eval_reasoning.py --log_path ~/tinker-logs/reasoning-rl --num_problems 100 --temperature 0.7
+    python eval_reasoning.py --checkpoint_uri tinker://[id]:train:0/weights/000020 --num_problems 100
 """
 import asyncio
 import logging
@@ -236,6 +239,7 @@ class EvalConfig:
     # Model specification (choose one):
     log_path: str | None = None  # Path to training run logs
     checkpoint_name: str | None = None  # Specific checkpoint name (e.g., "000100")
+    checkpoint_uri: str | None = None  # Direct Tinker URI (e.g., "tinker://[id]:train:0/weights/000020")
     model_name: str | None = None  # Base model to evaluate (e.g., "meta-llama/Llama-3.2-1B")
 
     # Evaluation parameters
@@ -253,7 +257,15 @@ async def main(config: EvalConfig):
     # Determine which model to load
     service_client = tinker.ServiceClient(base_url=config.base_url)
 
-    if config.log_path:
+    if config.checkpoint_uri:
+        # Load from direct Tinker URI
+        logger.info(f"Loading checkpoint from URI: {config.checkpoint_uri}")
+        sampling_client = service_client.create_sampling_client(config.checkpoint_uri)
+
+        # Use provided model_name or default to Llama-3.2-1B
+        model_name = config.model_name or "meta-llama/Llama-3.2-1B"
+
+    elif config.log_path:
         # Load from checkpoint
         import os
         log_path = os.path.expanduser(config.log_path)
@@ -296,7 +308,8 @@ async def main(config: EvalConfig):
 
     else:
         raise ValueError(
-            "Must specify either --log_path (to load checkpoint) or "
+            "Must specify one of: --checkpoint_uri (direct Tinker URI), "
+            "--log_path (to load checkpoint from logs), or "
             "--model_name (to load base model)"
         )
 
