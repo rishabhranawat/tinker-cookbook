@@ -10,6 +10,8 @@ Uses PPO loss with group_size=8 for on-policy RL training.
 """
 import asyncio
 import sys
+import uuid
+from datetime import datetime
 
 import chz
 from tinker_cookbook import cli_utils, model_info
@@ -31,6 +33,12 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
     model_name = "meta-llama/Llama-3.2-1B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
 
+    # Create dynamic log path with model name, datetime, and UUID
+    model_name_sanitized = model_name.replace("/", "_")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_uuid = str(uuid.uuid4())[:8]  # Use first 8 chars of UUID for brevity
+    log_path = f"~/tinker-logs/reasoning-rl/{model_name_sanitized}/{timestamp}_{run_uuid}"
+
     # Create dataset builder with group_size=8
     dataset_builder = ReasoningGsm8kDatasetBuilder(
         batch_size=64,          # Number of different problems per batch
@@ -44,7 +52,7 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
     return chz.Blueprint(train.Config).apply(
         {
             "model_name": model_name,
-            "log_path": "~/tinker-logs/reasoning-rl",
+            "log_path": log_path,
             "dataset_builder": dataset_builder,
 
             # Optimization settings
